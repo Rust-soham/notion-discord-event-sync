@@ -10,18 +10,18 @@
     "dev": "tsup src/index.ts --onSuccess \"node dist/index.js\""
   },
   "dependencies": {
-    "@effect/platform": "^0.76.0",
-    "@effect/platform-node": "^0.72.0",
-    "@notionhq/client": "^2.2.15",
-    "discord.js": "^14.17.3",
-    "dotenv": "^16.4.7",
-    "effect": "^3.12.11",
-    "redis": "^4.7.0"
+    "@effect/platform": "^0.76.1",
+    "@effect/platform-node": "^0.72.1",
+    "@notionhq/client": "^2.3.0",
+    "discord.js": "^14.24.2",
+    "dotenv": "^16.6.1",
+    "effect": "^3.19.4",
+    "redis": "^4.7.1"
   },
   "devDependencies": {
-    "@types/node": "^20.17.14",
-    "tsup": "^8.3.5",
-    "typescript": "^5.7.3"
+    "@types/node": "^20.19.25",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
   },
   "keywords": [],
   "author": "",
