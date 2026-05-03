@@ -8,7 +8,7 @@ export class RedisError extends Data.TaggedError("RedisError")<{
 
 interface RedisImpl {
   use: <T>(
-    fn: (client: ReturnType<typeof createClient>) => T
+    fn: (client: ReturnType<typeof createClient>) => T,
   ) => Effect.Effect<Awaited<T>, RedisError, never>;
 }
 export class Redis extends Context.Tag("Redis")<Redis, RedisImpl>() {}
@@ -20,7 +20,7 @@ export const make = (options?: Parameters<typeof createClient>[0]) =>
         try: () => createClient(options).connect(),
         catch: (e) => new RedisError({ cause: e, message: "Error connecting" }),
       }),
-      (client) => Effect.promise(() => client.quit())
+      (client) => Effect.promise(() => client.quit()),
     );
     return Redis.of({
       use: (fn) =>
@@ -57,13 +57,13 @@ export const fromEnv = Layer.scoped(
   Effect.gen(function* () {
     const url = yield* Config.string("REDIS_URL");
     return yield* make({ url });
-  })
+  }),
 );
 
 const VideoData = Schema.parseJson(
   Schema.Struct({
     title: Schema.String,
-  })
+  }),
 );
 type VideoData = Schema.Schema.Type<typeof VideoData>;
 
@@ -82,7 +82,7 @@ export const getPublishedSavedVideos = Effect.gen(function* () {
     Schema.Record({
       key: Schema.String,
       value: VideoData,
-    })
+    }),
   )(rawVideos);
 
   for (const [id, data] of Object.entries(parsedVideos)) {
