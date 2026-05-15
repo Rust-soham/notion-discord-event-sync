@@ -8,10 +8,10 @@ export class NotionError extends Data.TaggedError("NotionError")<{
 
 interface NotionImpl {
   use: <T>(
-    fn: (client: NotionClient) => T
+    fn: (client: NotionClient) => T,
   ) => Effect.Effect<Awaited<T>, NotionError, never>;
 }
-export class Notion extends Context.Tag("Notion")<Notion, NotionImpl>() {}
+export class Notion extends Context.Service<Notion, NotionImpl>()("Notion") {}
 
 type ConstructorArgs<T extends new (...args: any) => any> = T extends new (
   ...args: infer A
@@ -53,14 +53,14 @@ export const make = (options?: ConstructorArgs<typeof NotionClient>[0]) =>
   });
 
 export const layer = (options?: ConstructorArgs<typeof NotionClient>[0]) =>
-  Layer.scoped(Notion, make(options));
+  Layer.effect(Notion, make(options));
 
-export const fromEnv = Layer.scoped(
+export const fromEnv = Layer.effect(
   Notion,
   Effect.gen(function* () {
     const auth = yield* Config.string("NOTION_API_KEY");
     return yield* make({ auth });
-  })
+  }),
 );
 
 const NotionVideoDatabaseResponse = Schema.Struct({
@@ -72,11 +72,11 @@ const NotionVideoDatabaseResponse = Schema.Struct({
           title: Schema.Array(
             Schema.Struct({
               plain_text: Schema.String,
-            })
+            }),
           ),
         }),
       }),
-    })
+    }),
   ),
 });
 
@@ -103,10 +103,10 @@ export const getPublished = (dbId: string) =>
             },
           ],
         },
-      })
+      }),
     );
-    const parsedResponse = yield* Schema.decodeUnknown(
-      NotionVideoDatabaseResponse
+    const parsedResponse = yield* Schema.decodeUnknownEffect(
+      NotionVideoDatabaseResponse,
     )(rawResponse);
     return parsedResponse;
   }).pipe(Effect.withLogSpan("getPublished"));

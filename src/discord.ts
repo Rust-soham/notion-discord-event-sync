@@ -13,10 +13,12 @@ export class DiscordError extends Data.TaggedError("DiscordError")<{
 
 interface DiscordImpl {
   use: <T>(
-    fn: (client: DiscordClient) => T
+    fn: (client: DiscordClient) => T,
   ) => Effect.Effect<Awaited<T>, DiscordError, never>;
 }
-export class Discord extends Context.Tag("Discord")<Discord, DiscordImpl>() {}
+export class Discord extends Context.Service<Discord, DiscordImpl>()(
+  "Discord",
+) {}
 
 type ConstructorArgs<T extends new (...args: any) => any> = T extends new (
   ...args: infer A
@@ -58,9 +60,9 @@ export const make = (options: ConstructorArgs<typeof DiscordClient>[0]) =>
   });
 
 export const layer = (options: ConstructorArgs<typeof DiscordClient>[0]) =>
-  Layer.scoped(Discord, make(options));
+  Layer.effect(Discord, make(options));
 
-export const fromEnv = Layer.scoped(
+export const fromEnv = Layer.effect(
   Discord,
   Effect.gen(function* () {
     const token = yield* Config.string("DISCORD_TOKEN");
@@ -72,18 +74,18 @@ export const fromEnv = Layer.scoped(
     });
     yield* client.use(
       (client) =>
-        new Promise((resolve) => client.once(Events.ClientReady, resolve))
+        new Promise((resolve) => client.once(Events.ClientReady, resolve)),
     );
     yield* client.use((client) => client.login(token));
     return client;
-  })
+  }),
 );
 
 export const sendMessage = (channelId: string, message: string) =>
   Effect.gen(function* () {
     const discord = yield* Discord;
     const channel = yield* discord.use((client) =>
-      client.channels.fetch(channelId)
+      client.channels.fetch(channelId),
     );
     if (!channel) {
       return yield* new DiscordError({

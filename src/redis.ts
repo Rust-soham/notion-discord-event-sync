@@ -11,7 +11,7 @@ interface RedisImpl {
     fn: (client: ReturnType<typeof createClient>) => T,
   ) => Effect.Effect<Awaited<T>, RedisError, never>;
 }
-export class Redis extends Context.Tag("Redis")<Redis, RedisImpl>() {}
+export class Redis extends Context.Service<Redis, RedisImpl>()("Redis") {}
 
 export const make = (options?: Parameters<typeof createClient>[0]) =>
   Effect.gen(function* () {
@@ -50,9 +50,9 @@ export const make = (options?: Parameters<typeof createClient>[0]) =>
   });
 
 export const layer = (options?: Parameters<typeof createClient>[0]) =>
-  Layer.scoped(Redis, make(options));
+  Layer.effect(Redis, make(options));
 
-export const fromEnv = Layer.scoped(
+export const fromEnv = Layer.effect(
   Redis,
   Effect.gen(function* () {
     const url = yield* Config.string("REDIS_URL");
@@ -60,7 +60,7 @@ export const fromEnv = Layer.scoped(
   }),
 );
 
-const VideoData = Schema.parseJson(
+const VideoData = Schema.fromJsonString(
   Schema.Struct({
     title: Schema.String,
   }),
@@ -70,7 +70,7 @@ type VideoData = Schema.Schema.Type<typeof VideoData>;
 export const saveVideo = (id: string, data: VideoData) =>
   Effect.gen(function* () {
     const redis = yield* Redis;
-    const encodedData = yield* Schema.encode(VideoData)(data);
+    const encodedData = yield* Schema.encodeEffect(VideoData)(data);
     yield* redis.use((client) => client.hSet("videos", id, encodedData));
     yield* Effect.logInfo(`Saved to redis: ${id}`);
   }).pipe(Effect.withLogSpan("saveVideo"), Effect.annotateLogs("foo", "bar"));
@@ -78,11 +78,8 @@ export const saveVideo = (id: string, data: VideoData) =>
 export const getPublishedSavedVideos = Effect.gen(function* () {
   const redis = yield* Redis;
   const rawVideos = yield* redis.use((client) => client.hGetAll("videos"));
-  const parsedVideos = yield* Schema.decode(
-    Schema.Record({
-      key: Schema.String,
-      value: VideoData,
-    }),
+  const parsedVideos = yield* Schema.decodeEffect(
+    Schema.Record(Schema.String, VideoData),
   )(rawVideos);
 
   for (const [id, data] of Object.entries(parsedVideos)) {
